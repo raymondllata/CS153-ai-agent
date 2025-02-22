@@ -25,7 +25,6 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 # Import the Mistral agent from the agent.py file
 agent = MistralAgent()
 
-
 # Get the token from the environment variables
 token = os.getenv("DISCORD_TOKEN")
 
