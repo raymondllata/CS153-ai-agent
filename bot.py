@@ -5,6 +5,9 @@ import logging
 from discord.ext import commands
 from dotenv import load_dotenv
 from agent import MistralAgent
+from battle import Battle
+from village import Village
+from start_story import StorySystem
 
 PREFIX = "!"
 
@@ -73,6 +76,33 @@ async def ping(ctx, *, arg=None):
         await ctx.send("Pong!")
     else:
         await ctx.send(f"Pong! Your argument was {arg}")
+
+@bot.command(name="start", help="Starts the game")
+async def start(ctx, *, arg=None):
+    story = StorySystem()
+    if arg is None:
+        await ctx.send("Starting the game...")
+    else:
+        await ctx.send(f"Starting the game... {arg}")
+    # Start the adventure
+    try:
+        await story.start_adventure(ctx)
+    except Exception as e:
+        await ctx.send(f"An error occurred: {str(e)}")
+
+@bot.command(name="village", help="Tests Village")
+async def village(ctx, *, arg=None):
+    story = StorySystem()
+    if arg is None:
+        await ctx.send("Starting the village test...")
+    else:
+        await ctx.send(f"Starting the village tst... {arg}")
+    # Start the adventure
+    try:
+        await story.test_village(ctx)
+    except Exception as e:
+        await ctx.send(f"An error occurred: {str(e)}")
+    
 
 
 # Start the bot, connecting it to the gateway
