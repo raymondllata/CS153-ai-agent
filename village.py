@@ -4,7 +4,7 @@ from user import User
 
 class Village:
     def __init__(self):
-        # Base shop items
+        # Base shop items - should be replaced with API calls
         self.shop_items = {
             "Health Potion": {"price": 50, "heal": 30, "description": "Restores 30 HP"},
             "Super Potion": {"price": 100, "heal": 70, "description": "Restores 70 HP"},
@@ -14,7 +14,7 @@ class Village:
             "Steel Shield": {"price": 120, "defense": 8, "description": "Increases Defense by 8"}
         }
         
-        # Special items that may appear based on stats
+        # Special items that may appear based on stats - should be replaced with API calls
         self.special_items = {
             "Intelligence": {
                 "Arcane Tome": {"price": 200, "stat_boost": {"Intelligence": 3, "Wisdom": 1}, "min_stat": 14},

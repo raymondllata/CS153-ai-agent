@@ -105,6 +105,7 @@ class StorySystem:
         """Handle battle sequence, returns True if player survives"""
         battle = self.battle_system.generate_battle()
         
+        # API CALL: Send battle data (ie. setting, monsters, current user) to Mistral, and generate a story line to print out
         await ctx.send(f"\n{battle['storyline']}")
         await ctx.send(f"Location: {battle['setting']}")
         

@@ -29,7 +29,7 @@ class Battle:
             "Haunted Castle"
         ]
         
-        # Placeholder storylines that could be replaced with API calls
+        # Instead of hardcoding, these should each be API calls to Mistral as the battle progresses in start_story.py
         self.storylines = [
             "A mysterious fog surrounds you as creatures emerge from the shadows...",
             "The ancient guardian awakens, protecting its sacred grounds...",
