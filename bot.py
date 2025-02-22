@@ -45,16 +45,59 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-    if message.author.bot:
+    """
+    Called when a message is sent in any channel the bot can see.
+
+    https://discordpy.readthedocs.io/en/latest/api.html#discord.on_message
+    """
+    # Don't delete this line! It's necessary for the bot to process commands.
+    await bot.process_commands(message)
+
+    # Ignore messages from self or other bots to prevent infinite loops.
+    if message.author.bot or message.content.startswith("!"):
         return
 
-    user = get_user(message.author.id)
-    
-    if message.content.startswith("!stats"):
-        await message.channel.send(f"```{user.show_stats()}```")
-    elif message.content.startswith("!levelup"):
-        response = user.level_up()
-        await message.channel.send(response)
+    # Process the message with the agent you wrote
+    # Open up the agent.py file to customize the agent
+    logger.info(f"Processing message from {message.author}: {message.content}")
+    response = await agent.run(message)
+
+    # Split response into chunks of 2000 characters or less
+    # Use a helper function to split on sentence boundaries when possible
+    def split_into_chunks(text, chunk_size=2000):
+        chunks = []
+        current_chunk = ""
+        
+        # Split text into sentences (roughly)
+        sentences = text.replace('\n', '\n.').split('.')
+        
+        for sentence in sentences:
+            # Add the period back unless it's a newline
+            if not sentence.strip().endswith('\n'):
+                sentence = sentence + '.'
+                
+            # If adding this sentence would exceed chunk size, start a new chunk
+            if len(current_chunk) + len(sentence) > chunk_size:
+                chunks.append(current_chunk)
+                current_chunk = sentence
+            else:
+                current_chunk += sentence
+                
+        # Add the last chunk if it's not empty
+        if current_chunk:
+            chunks.append(current_chunk)
+            
+        return chunks
+
+    # Send each chunk as a separate message
+    chunks = split_into_chunks(response)
+    for i, chunk in enumerate(chunks):
+        if i == 0:
+            # First chunk uses reply to maintain threading
+            await message.reply(chunk)
+        else:
+            # Subsequent chunks use regular send
+            await message.channel.send(chunk)
 
 
 # Commands
@@ -97,10 +140,17 @@ async def village(ctx, *, arg=None):
         await ctx.send(f"An error occurred: {str(e)}")
     
 # This command prints all existing users
-@bot.command(name="show_users", help="Prints all stored users.")
-async def show_users(ctx):
-    users = load_users()
-    await ctx.send(f"```json\n{json.dumps(users, indent=4)}```")
+# @bot.command(name="show_users", help="Prints all stored users.")
+# async def show_users(ctx):
+#     users = load_users()
+#     await ctx.send(f"```json\n{json.dumps(users, indent=4)}```")
+
+# Makes the bot stop
+@bot.command(name="quit", help="Shuts down the bot.")
+async def quit(ctx):
+    """Safely shuts down the bot"""
+    await ctx.send("Shutting down... Goodbye!")
+    await bot.close()
 
 
 
