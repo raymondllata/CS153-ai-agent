@@ -1,10 +1,13 @@
 import os
 import discord
+import json
 import logging
 
 from discord.ext import commands
 from dotenv import load_dotenv
 from agent import MistralAgent
+from user import get_user
+from user import load_users
 
 PREFIX = "!"
 
@@ -40,25 +43,16 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-    """
-    Called when a message is sent in any channel the bot can see.
-
-    https://discordpy.readthedocs.io/en/latest/api.html#discord.on_message
-    """
-    # Don't delete this line! It's necessary for the bot to process commands.
-    await bot.process_commands(message)
-
-    # Ignore messages from self or other bots to prevent infinite loops.
-    if message.author.bot or message.content.startswith("!"):
+    if message.author.bot:
         return
 
-    # Process the message with the agent you wrote
-    # Open up the agent.py file to customize the agent
-    logger.info(f"Processing message from {message.author}: {message.content}")
-    response = await agent.run(message)
-
-    # Send the response back to the channel
-    await message.reply(response)
+    user = get_user(message.author.id)
+    
+    if message.content.startswith("!stats"):
+        await message.channel.send(f"```{user.show_stats()}```")
+    elif message.content.startswith("!levelup"):
+        response = user.level_up()
+        await message.channel.send(response)
 
 
 # Commands
@@ -73,6 +67,13 @@ async def ping(ctx, *, arg=None):
         await ctx.send("Pong!")
     else:
         await ctx.send(f"Pong! Your argument was {arg}")
+
+# This command prints all existing users
+@bot.command(name="show_users", help="Prints all stored users.")
+async def show_users(ctx):
+    users = load_users()
+    await ctx.send(f"```json\n{json.dumps(users, indent=4)}```")
+
 
 
 # Start the bot, connecting it to the gateway
