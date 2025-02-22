@@ -151,35 +151,70 @@ class StorySystem:
         return False
     
     async def visit_village(self, ctx, user: User, combat_stats: Dict) -> None:
-        """Handle village sequence"""
+        """Handle village sequence with user interaction"""
         await ctx.send("\nYou arrive at the village to rest and recover...")
         
-        options_message = """
-        What would you like to do?
-        1️⃣ Visit the healer (1 HP = 1 coin + 10 coin fee)
-        2️⃣ Visit the shop
-        3️⃣ Leave village
-        """
-        await ctx.send(options_message)
-        
-        # Auto-heal if below 50% HP and can afford it
-        if combat_stats['current_hp'] < (combat_stats['max_hp'] / 2):
-            healing_needed = combat_stats['max_hp'] - combat_stats['current_hp']
-            healing_cost = healing_needed + 10  # Base cost + service fee
+        while True:  # Keep running until user chooses to leave
+            # Display current stats
+            await ctx.send(f"\nCurrent HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}")
+            await ctx.send(f"Coins: {combat_stats['coins']}")
             
-            if combat_stats['coins'] >= healing_cost:
-                combat_stats['coins'] -= healing_cost
-                combat_stats['current_hp'] = combat_stats['max_hp']
-                await ctx.send(f"You've been healed to full health! Current HP: {combat_stats['current_hp']}")
-                await ctx.send(f"Remaining coins: {combat_stats['coins']}")
-            else:
-                await ctx.send("Not enough coins for healing!")
-        
-        # Show shop inventory
-        shop_message = "Available items in shop:"
-        for item, details in self.village.shop_items.items():
-            shop_message += f"\n- {item}: {details['price']} coins"
-        await ctx.send(shop_message)
+            options_message = """
+            What would you like to do?
+            1️⃣ Visit the healer (1 HP = 1 coin + 10 coin fee)
+            2️⃣ Visit the shop
+            3️⃣ Leave village
+            """
+            await ctx.send(options_message)
+            
+            try:
+                # Wait for user response
+                def check(m):
+                    return m.author == ctx.author and m.channel == ctx.channel
+                
+                response = await ctx.bot.wait_for('message', timeout=30.0, check=check)
+                
+                # Process user choice
+                choice = response.content.lower()
+                
+                if choice in ['1', 'healer', 'visit healer']:
+                    healing_needed = combat_stats['max_hp'] - combat_stats['current_hp']
+                    healing_cost = healing_needed + 10  # Base cost + service fee
+                    
+                    if combat_stats['coins'] >= healing_cost:
+                        combat_stats['coins'] -= healing_cost
+                        combat_stats['current_hp'] = combat_stats['max_hp']
+                        await ctx.send(f"You've been healed to full health! Current HP: {combat_stats['current_hp']}")
+                        await ctx.send(f"Remaining coins: {combat_stats['coins']}")
+                    else:
+                        await ctx.send("Not enough coins for healing!")
+                
+                elif choice in ['2', 'shop', 'visit shop']:
+                    # Show shop inventory
+                    shop_message = "Available items in shop:"
+                    for item, details in self.village.shop_items.items():
+                        shop_message += f"\n- {item}: {details['price']} coins"
+                    await ctx.send(shop_message)
+                    
+                    # Wait for shop choice
+                    await ctx.send("What would you like to buy? (Type the item name or 'back' to return)")
+                    shop_response = await ctx.bot.wait_for('message', timeout=30.0, check=check)
+                    
+                    if shop_response.content.lower() != 'back':
+                        # Try to buy the item
+                        result = self.village.buy_item(user, combat_stats, shop_response.content)
+                        await ctx.send(result['message'])
+                
+                elif choice in ['3', 'leave', 'leave village']:
+                    await ctx.send("You leave the village and continue your journey...")
+                    break
+                
+                else:
+                    await ctx.send("Invalid choice! Please select 1, 2, or 3.")
+            
+            except asyncio.TimeoutError:
+                await ctx.send("No response received. Please make a selection!")
+                continue
 
 # Mock Discord context for terminal testing
 class MockContext:
