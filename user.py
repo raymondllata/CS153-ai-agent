@@ -38,14 +38,6 @@ class User:
         return f"Name: {self.name}\nClass: {self.character_class}\nLevel: {self.level}\nStats: {self.stats}\nInventory: {self.inventory}"
 
 
-<<<<<<< HEAD
-
-def save_users(users):
-    """Save user data to a JSON file."""
-    with open(USER_DATA_FILE, "w") as f:
-        json.dump(users, f, indent=4)
-
-=======
 # def load_users():
 #     """Load users from a JSON file."""
 #     if os.path.exists(USER_DATA_FILE):
@@ -58,7 +50,6 @@ def save_users(users):
 #     """Save user data to a JSON file."""
 #     with open(USER_DATA_FILE, "w") as f:
 #         json.dump(users, f, indent=4)
->>>>>>> c9b05390448af2247c96972c74ad47cfc137a10c
 
 def make_random_user():
     """Generate a random user for testing purposes."""
