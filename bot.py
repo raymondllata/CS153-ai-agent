@@ -9,10 +9,11 @@ from agent import MistralAgent
 from battle import Battle
 from village import Village
 from start_story import StorySystem
-from user import get_user
-from user import load_users
+# from user import get_user
+# from user import load_users
 
 PREFIX = "!"
+story = None
 
 # Setup logging
 logger = logging.getLogger("discord")
@@ -45,16 +46,25 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-    if message.author.bot:
+    """
+    Called when a message is sent in any channel the bot can see.
+
+    https://discordpy.readthedocs.io/en/latest/api.html#discord.on_message
+    """
+    # Don't delete this line! It's necessary for the bot to process commands.
+    await bot.process_commands(message)
+
+    # Ignore messages from self or other bots to prevent infinite loops.
+    if message.author.bot or message.content.startswith("!"):
         return
 
-    user = get_user(message.author.id)
-    
-    if message.content.startswith("!stats"):
-        await message.channel.send(f"```{user.show_stats()}```")
-    elif message.content.startswith("!levelup"):
-        response = user.level_up()
-        await message.channel.send(response)
+    # Process the message with the agent you wrote
+    # Open up the agent.py file to customize the agent
+    logger.info(f"Processing message from {message.author}: {message.content}")
+    response = await agent.run(message)
+
+    # Send the response back to the channel
+    await message.reply(response)
 
 
 # Commands
@@ -72,6 +82,7 @@ async def ping(ctx, *, arg=None):
 
 @bot.command(name="start", help="Starts the game")
 async def start(ctx, *, arg=None):
+    global story
     story = StorySystem()
     if arg is None:
         await ctx.send("Starting the game...")
@@ -82,6 +93,15 @@ async def start(ctx, *, arg=None):
         await story.start_adventure(ctx)
     except Exception as e:
         await ctx.send(f"An error occurred: {str(e)}")
+
+@bot.command(name="end", help="Ends the current game")
+async def end(ctx):
+    global story
+    if story is None:
+        await ctx.send("No game is currently running!")
+    else:
+        story.force_end = True  # Set the flag instead of probability
+        await ctx.send("Ending the current game...")
 
 @bot.command(name="village", help="Tests Village")
 async def village(ctx, *, arg=None):
@@ -95,13 +115,6 @@ async def village(ctx, *, arg=None):
         await story.test_village(ctx)
     except Exception as e:
         await ctx.send(f"An error occurred: {str(e)}")
-    
-# This command prints all existing users
-@bot.command(name="show_users", help="Prints all stored users.")
-async def show_users(ctx):
-    users = load_users()
-    await ctx.send(f"```json\n{json.dumps(users, indent=4)}```")
-
 
 
 # Start the bot, connecting it to the gateway

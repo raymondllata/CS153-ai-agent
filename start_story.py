@@ -2,12 +2,15 @@ from typing import Dict
 import random
 from battle import Battle, Monster
 from village import Village
-from user import User, get_user, save_users, load_users, make_random_user
+from user import User, make_random_user
 
 class StorySystem:
     def __init__(self):
         self.battle_system = Battle()
         self.village = Village()
+        self.base_end_probability = 0.1  # Starting 10% chance to end
+        self.current_end_probability = self.base_end_probability
+        self.force_end = False
         
         # Class-based stat modifiers
         self.class_modifiers = {
@@ -17,6 +20,18 @@ class StorySystem:
             "Cleric": {"Wisdom": 2, "Charisma": 2, "Intelligence": 1}
         }
     
+    def should_end_story(self) -> bool:
+        """Determine if the story should end based on current probability"""
+        should_end = random.random() < self.current_end_probability
+        if not should_end:
+            # Double the probability for next time
+            self.current_end_probability *= 2
+        return should_end
+
+    def reset_end_probability(self):
+        """Reset the end probability to base value"""
+        self.current_end_probability = self.base_end_probability
+
     def calculate_combat_stats(self, user: User) -> Dict:
         """Calculate combat stats based on user's level and class"""
         base_stats = {
@@ -42,38 +57,68 @@ class StorySystem:
         return base_stats
 
     async def start_adventure(self, ctx) -> None:
-        """Main story flow"""
+        """Main story flow with repeating adventures"""
         # Get or create user
-        # user = get_user(ctx.author.id)
         user = make_random_user()
         combat_stats = self.calculate_combat_stats(user)
         
         # Initial message
         await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
         await ctx.send(user.show_stats())
-        await ctx.send(f"Combat Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
-                      f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
-                      f"Coins: {combat_stats['coins']}")
         
-        # Generate and start battle
-        survived = await self.run_battle(ctx, user, combat_stats)
+        # Reset probability at start of new adventure
+        self.reset_end_probability()
         
-        # After battle, visit village if survived
-        if survived:
+        while True:  # Infinite loop for continuing adventures
+            await ctx.send(f"\nCurrent Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
+                         f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
+                         f"Coins: {combat_stats['coins']}")
+            
+            if self.force_end:
+                await ctx.send(f"\n{user.name}'s adventure is cut short by fate...")
+                await ctx.send(f"Final Level: {user.level}")
+                await ctx.send(f"Final Coins: {combat_stats['coins']}")
+                break
+
+            # Check if story should end
+            if self.should_end_story():
+                await ctx.send(f"\nAfter many adventures, {user.name} decides to retire...")
+                await ctx.send(f"Final Level: {user.level}")
+                await ctx.send(f"Final Coins: {combat_stats['coins']}")
+                break
+            
+            # Generate and start battle
+            survived = await self.run_battle(ctx, user, combat_stats)
+            
+            if not survived:
+                await ctx.send(f"{user.name}'s journey comes to an end...")
+                break
+            
+            # After battle, visit village if survived
             await self.visit_village(ctx, user, combat_stats)
             
-            # Check for level up conditions (simplified)
-            if random.random() < 0.3:  # 30% chance to level up after successful adventure
+            # Check for level up conditions
+            if random.random() < 0.3:  # 30% chance to level up
                 level_message = user.level_up()
                 await ctx.send(level_message)
                 
+                # Recalculate combat stats after leveling up
+                new_stats = self.calculate_combat_stats(user)
+                await ctx.send(level_message)
+                combat_stats['max_hp'] = new_stats['max_hp']
+                await ctx.send(level_message)
+                combat_stats['attack'] = new_stats['attack']
+                combat_stats['defense'] = new_stats['defense']
+                await ctx.send(level_message)
                 # Save updated user data
-                users = load_users()
-                users[str(user.user_id)]["level"] = user.level
-                save_users(users)
+                # users = load_users()
+                await ctx.send(level_message)
+                #users[str(user.user_id)]["level"] = user.level
+                # save_users(users)
+            
+            await ctx.send("\nYour adventure continues...")
 
     async def test_village(self, ctx) -> None:
-        """Main story flow"""
         # Get or create user
         # user = get_user(ctx.author.id)
         user = make_random_user()
@@ -97,9 +142,9 @@ class StorySystem:
                 await ctx.send(level_message)
                 
                 # Save updated user data
-                users = load_users()
-                users[str(user.user_id)]["level"] = user.level
-                save_users(users)
+                # users = load_users()
+                # users[str(user.user_id)]["level"] = user.level
+                # save_users(users)
     
     async def run_battle(self, ctx, user: User, combat_stats: Dict) -> bool:
         """Handle battle sequence, returns True if player survives"""
