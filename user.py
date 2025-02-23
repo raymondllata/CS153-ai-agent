@@ -44,12 +44,12 @@ def load_users():
             return json.load(f)
     return {}
 
-'''
+
 def save_users(users):
     """Save user data to a JSON file."""
     with open(USER_DATA_FILE, "w") as f:
         json.dump(users, f, indent=4)
-'''
+
 
 def make_random_user():
     """Generate a random user for testing purposes."""
