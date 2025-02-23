@@ -9,11 +9,12 @@ from agent import MistralAgent
 from battle import Battle
 from village import Village
 from start_story import StorySystem
-from user import get_user
-from user import load_users
+# from user import get_user
+# from user import load_users
 
 PREFIX = "!"
 STORY_STARTED = False
+story = None
 
 # Setup logging
 logger = logging.getLogger("discord")
@@ -122,6 +123,7 @@ async def ping(ctx, *, arg=None):
 async def start(ctx, *, arg=None):
     global STORY_STARTED
     STORY_STARTED = True
+    global story
     story = StorySystem()
     if arg is None:
         await ctx.send("Starting the game...")
@@ -132,6 +134,15 @@ async def start(ctx, *, arg=None):
         await story.start_adventure(ctx)
     except Exception as e:
         await ctx.send(f"An error occurred: {str(e)}")
+
+@bot.command(name="end", help="Ends the current game")
+async def end(ctx):
+    global story
+    if story is None:
+        await ctx.send("No game is currently running!")
+    else:
+        story.force_end = True  # Set the flag instead of probability
+        await ctx.send("Ending the current game...")
 
 @bot.command(name="village", help="Tests Village")
 async def village(ctx, *, arg=None):

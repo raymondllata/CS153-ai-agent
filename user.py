@@ -37,19 +37,28 @@ class User:
         """Display user stats."""
         return f"Name: {self.name}\nClass: {self.character_class}\nLevel: {self.level}\nStats: {self.stats}\nInventory: {self.inventory}"
 
-def load_users():
-    """Load users from a JSON file."""
-    if os.path.exists(USER_DATA_FILE):
-        with open(USER_DATA_FILE, "r") as f:
-            return json.load(f)
-    return {}
 
+<<<<<<< HEAD
 
 def save_users(users):
     """Save user data to a JSON file."""
     with open(USER_DATA_FILE, "w") as f:
         json.dump(users, f, indent=4)
 
+=======
+# def load_users():
+#     """Load users from a JSON file."""
+#     if os.path.exists(USER_DATA_FILE):
+#         with open(USER_DATA_FILE, "r") as f:
+#             return json.load(f)
+#     return {}
+
+
+# def save_users(users):
+#     """Save user data to a JSON file."""
+#     with open(USER_DATA_FILE, "w") as f:
+#         json.dump(users, f, indent=4)
+>>>>>>> c9b05390448af2247c96972c74ad47cfc137a10c
 
 def make_random_user():
     """Generate a random user for testing purposes."""
@@ -115,19 +124,19 @@ def make_random_user():
     
     return user
 
-def get_user(user_id):
-    """Retrieve a user from storage or create a new one."""
-    users = load_users()
-    if str(user_id) in users:
-        user_data = users[str(user_id)]
-        return User(user_id, user_data["name"], user_data["character_class"], user_data["level"])
+# def get_user(user_id):
+#     """Retrieve a user from storage or create a new one."""
+#     # users = load_users()
+#     if str(user_id) in users:
+#         user_data = users[str(user_id)]
+#         return User(user_id, user_data["name"], user_data["character_class"], user_data["level"])
     
-    # Create a new user if they don't exist
-    new_user = User(user_id, "New Player", "Warrior")
-    users[str(user_id)] = {
-        "name": new_user.name,
-        "character_class": new_user.character_class,
-        "level": new_user.level
-    }
-    # save_users(users)
-    return new_user
+#     # Create a new user if they don't exist
+#     new_user = User(user_id, "New Player", "Warrior")
+#     users[str(user_id)] = {
+#         "name": new_user.name,
+#         "character_class": new_user.character_class,
+#         "level": new_user.level
+#     }
+#     # save_users(users)
+#     return new_user
