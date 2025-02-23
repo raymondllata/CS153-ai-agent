@@ -13,6 +13,7 @@ from user import get_user
 from user import load_users
 
 PREFIX = "!"
+STORY_STARTED = False
 
 # Setup logging
 logger = logging.getLogger("discord")
@@ -55,6 +56,10 @@ async def on_message(message: discord.Message):
 
     # Ignore messages from self or other bots to prevent infinite loops.
     if message.author.bot or message.content.startswith("!"):
+        return
+    
+    # Check if bot is paused before making API calls
+    if STORY_STARTED:
         return
 
     # Process the message with the agent you wrote
@@ -115,6 +120,8 @@ async def ping(ctx, *, arg=None):
 
 @bot.command(name="start", help="Starts the game")
 async def start(ctx, *, arg=None):
+    global STORY_STARTED
+    STORY_STARTED = True
     story = StorySystem()
     if arg is None:
         await ctx.send("Starting the game...")
@@ -128,6 +135,8 @@ async def start(ctx, *, arg=None):
 
 @bot.command(name="village", help="Tests Village")
 async def village(ctx, *, arg=None):
+    global STORY_STARTED
+    STORY_STARTED = True
     story = StorySystem()
     if arg is None:
         await ctx.send("Starting the village test...")
