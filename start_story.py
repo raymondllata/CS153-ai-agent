@@ -3,6 +3,7 @@ import random
 from battle import Battle, Monster
 from village import Village
 from user import User, make_random_user
+import asyncio
 
 class StorySystem:
     def __init__(self):
