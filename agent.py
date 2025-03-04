@@ -32,7 +32,7 @@ class MistralAgent:
 
         return response.choices[0].message.content
 
-    async def generate_monster_template(self) -> Dict:
+    async def generate_monster_template(self, existing_templates, story_info) -> Dict:
         """Generate a monster template using the Mistral API"""
         # headers = {
         #     "Authorization": f"Bearer {self.api_key}",
@@ -47,7 +47,13 @@ class MistralAgent:
                 "defense": number between 2-12
             }.
             
-            Only return a JSON string object. Should not contain any other text. Please only return a JSON string formatted object."""
+            Only return a JSON string object. Should not contain any other text. Please only return a JSON string formatted object.
+             
+              
+               Do not repeat any monsters that have already been created. """
+        
+        prompt += "\n" + "Existing Monsters: " + str(existing_templates) + "\n" + "Story Info: " + str(story_info) 
+        prompt += "\n" + "If possible, generate a monster/person that makes sense for the given story_information and existing monsters."
         
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -60,7 +66,7 @@ class MistralAgent:
         )
         # The response is already a Python object, no need to call .json()
         # Let's print the structure to see what we're working with
-        print(f"Response type: {type(response)}")
+        #print(f"Response type: {type(response)}")
         
         # Access the content directly from the response object
         content = response.choices[0].message.content
