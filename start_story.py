@@ -155,10 +155,15 @@ class StorySystem:
     
     async def run_battle(self, ctx, user: User, combat_stats: Dict, story_info = None) -> bool:
         """Handle battle sequence, returns True if player survives"""
-        battle = await self.battle_system.generate_battle()
+        print("Generating Battle...")
+        battle = await self.battle_system.generate_battle(story_info=story_info)
+        print("Done Generating Battle")
+
+        await asyncio.sleep(1) # 1 Request per second delay
         
         # API CALL: Send battle data (ie. setting, monsters, current user) to Mistral, and generate a story line to print out
         if self.agent != None:
+            print("Generating Story...")
             mistral_story = await self.agent.generate_story(story_info, battle)
             await ctx.send(f"\n{mistral_story}")
         else:
