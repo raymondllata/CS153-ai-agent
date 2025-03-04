@@ -1,8 +1,8 @@
 from typing import List, Dict
 import random
-import requests
+#import requests
 import os
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
 class Monster:
     def __init__(self, name: str, hp: int, attack: int, defense: int):
@@ -16,14 +16,16 @@ class Monster:
         return self.current_hp > 0
 
 class Battle:
-    def __init__(self):
+    def __init__(self, agent = None):
         # Load API configuration
-        load_dotenv()  # Load environment variables
+        #load_dotenv()  # Load environment variables
         self.api_key = os.getenv('MISTRAL_API_KEY')
         if not self.api_key:
             raise ValueError("MISTRAL_API_KEY not found in environment variables")
             
         self.api_url = "https://api.mistral.ai/v1/chat/completions"
+
+        self.agent = agent
         
         # Placeholder monsters that could be replaced with API calls
         self.monster_templates = [
@@ -80,7 +82,7 @@ class Battle:
                 random.choice(self.monster_templates)
             }
 
-    def generate_battle(self) -> Dict:
+    async def generate_battle(self) -> Dict:
         """Generate a random battle scenario"""
         setting = random.choice(self.settings)
         storyline = random.choice(self.storylines)
@@ -90,7 +92,7 @@ class Battle:
         monsters = []
         for _ in range(num_monsters):
             # template = random.choice(self.monster_templates)
-            template = self.generate_monster_template()
+            template = await self.agent.generate_monster_template()
             monster = Monster(
                 template["name"],
                 template["hp"],

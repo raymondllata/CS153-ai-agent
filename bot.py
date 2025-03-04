@@ -124,7 +124,7 @@ async def start(ctx, *, arg=None):
     global STORY_STARTED
     STORY_STARTED = True
     global story
-    story = StorySystem()
+    story = StorySystem(agent)
     if arg is None:
         await ctx.send("Starting the game...")
     else:

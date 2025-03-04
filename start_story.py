@@ -6,8 +6,9 @@ from user import User, make_random_user
 import asyncio
 
 class StorySystem:
-    def __init__(self):
-        self.battle_system = Battle()
+    def __init__(self, agent):
+        self.agent = agent
+        self.battle_system = Battle(agent=self.agent)
         self.village = Village()
         self.base_end_probability = 0.1  # Starting 10% chance to end
         self.current_end_probability = self.base_end_probability
@@ -149,7 +150,7 @@ class StorySystem:
     
     async def run_battle(self, ctx, user: User, combat_stats: Dict) -> bool:
         """Handle battle sequence, returns True if player survives"""
-        battle = self.battle_system.generate_battle()
+        battle = await self.battle_system.generate_battle()
         
         # API CALL: Send battle data (ie. setting, monsters, current user) to Mistral, and generate a story line to print out
         await ctx.send(f"\n{battle['storyline']}")
