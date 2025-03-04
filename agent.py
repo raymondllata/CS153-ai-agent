@@ -114,3 +114,22 @@ class MistralAgent:
         story_info.append(response.choices[0].message.content)
 
         return response.choices[0].message.content
+    
+
+    async def generate_conclusion(self, story_info):
+        # Generate a conclusion using Mistral's API
+        content = "Previous Stories: " + str(story_info) + "\n" + "Generate a conclusion that makes sense for the given story_information. Keep your response concise and engaging. Less then 100 words. The conclusion should wrap up the story and leave room for future stories."
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content}
+        ]
+
+        response = await self.client.chat.complete_async(
+            model=MISTRAL_MODEL,
+            messages=messages,
+        )
+
+        story_info.append(response.choices[0].message.content)
+
+        return response.choices[0].message.content
