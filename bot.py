@@ -124,14 +124,19 @@ async def start(ctx, *, arg=None):
     global STORY_STARTED
     STORY_STARTED = True
     global story
+    print(arg)
     story = StorySystem(agent)
+    story_details = []
     if arg is None:
         await ctx.send("Starting the game...")
     else:
+        print(arg.strip())
+        story_details.append(arg.strip())
+        await agent.generate_theme_header(story_details)
         await ctx.send(f"Starting the game... {arg}")
     # Start the adventure
     try:
-        await story.start_adventure(ctx)
+        await story.start_adventure(ctx, story_details)
     except Exception as e:
         await ctx.send(f"An error occurred: {str(e)}")
 
@@ -148,7 +153,7 @@ async def end(ctx):
 async def village(ctx, *, arg=None):
     global STORY_STARTED
     STORY_STARTED = True
-    story = StorySystem()
+    story = StorySystem(agent)
     if arg is None:
         await ctx.send("Starting the village test...")
     else:

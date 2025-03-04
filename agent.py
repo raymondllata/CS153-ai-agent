@@ -6,7 +6,7 @@ import random
 from typing import Dict
 
 MISTRAL_MODEL = "mistral-large-latest"
-SYSTEM_PROMPT = "You are a Dungeions and Dragons game teller. You will answer like so. Be creative and have fun! Do not repeat stories."
+SYSTEM_PROMPT = "You are a Dungeons and Dragons game teller. Be creative and have fun! Do not repeat stories. You should be amenable to user's prompts (the first line of every request). The story should try to adhere to the themes of the user stated theme, even if not necessairly a D&D theme. Be creative."
 
 
 class MistralAgent:
@@ -52,13 +52,12 @@ class MistralAgent:
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
-        ]
+            ]
 
         response = await self.client.chat.complete_async(
             model=MISTRAL_MODEL,
             messages=messages,
         )
-
         # The response is already a Python object, no need to call .json()
         # Let's print the structure to see what we're working with
         print(f"Response type: {type(response)}")
@@ -73,4 +72,39 @@ class MistralAgent:
         except Exception as e:
             print(f"Error generating monster: {e}")
             return None
-            
+    
+    async def generate_story(self, story_info, battle_info: dict):
+        # Generate a story prompt using Mistral's API
+        content = "Previous Stories: " + str(story_info) + "\n" + "Battle Info: " + str(battle_info) + "\n" + "Generate a story prompt that makes sense for the given battle_information and previous stories. Keep your response concise and engaging. Less then 100 words. The story should begin where the last story left off, and connect them accordingly"
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content}
+        ]
+
+        response = await self.client.chat.complete_async(
+            model=MISTRAL_MODEL,
+            messages=messages,
+        )
+        print(story_info)
+        story_info.append(response.choices[0].message.content)
+
+        return response.choices[0].message.content
+    
+    async def generate_theme_header(self, story_info):
+        # Generate a theme header using Mistral's API
+        content = "Previous Stories: " + str(story_info) + "\n" + "Generate a theme header that makes sense for the given story_information. Keep your response concise and engaging. Less then 100 words. The theme should be related to the story prompt."
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content}
+        ]
+
+        response = await self.client.chat.complete_async(
+            model=MISTRAL_MODEL,
+            messages=messages,
+        )
+
+        story_info.append(response.choices[0].message.content)
+
+        return response.choices[0].message.content

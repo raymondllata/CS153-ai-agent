@@ -6,13 +6,14 @@ from user import User, make_random_user
 import asyncio
 
 class StorySystem:
-    def __init__(self, agent):
+    def __init__(self, agent = None):
         self.agent = agent
         self.battle_system = Battle(agent=self.agent)
         self.village = Village()
         self.base_end_probability = 0.1  # Starting 10% chance to end
         self.current_end_probability = self.base_end_probability
         self.force_end = False
+        self.agent = agent
         
         # Class-based stat modifiers
         self.class_modifiers = {
@@ -58,11 +59,15 @@ class StorySystem:
         
         return base_stats
 
-    async def start_adventure(self, ctx) -> None:
+    async def start_adventure(self, ctx, story_info=None) -> None:
         """Main story flow with repeating adventures"""
         # Get or create user
         user = make_random_user()
         combat_stats = self.calculate_combat_stats(user)
+
+        # Generate story details if needed
+        if story_info == [] or story_info is None:
+            story_info = [user.name + " the " + user.character_class + " is on a crazy adventure!"] 
         
         # Initial message
         await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
@@ -72,9 +77,9 @@ class StorySystem:
         self.reset_end_probability()
         
         while True:  # Infinite loop for continuing adventures
-            await ctx.send(f"\nCurrent Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
-                         f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
-                         f"Coins: {combat_stats['coins']}")
+            # await ctx.send(f"\nCurrent Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
+            #              f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
+            #              f"Coins: {combat_stats['coins']}")
             
             if self.force_end:
                 await ctx.send(f"\n{user.name}'s adventure is cut short by fate...")
@@ -90,13 +95,13 @@ class StorySystem:
                 break
             
             # Generate and start battle
-            survived = await self.run_battle(ctx, user, combat_stats)
+            survived = await self.run_battle(ctx, user, combat_stats, story_info)
             
             if not survived:
                 await ctx.send(f"{user.name}'s journey comes to an end...")
                 break
             
-            # After battle, visit village if survived
+            # After battle, 30% chance to visit village if survived
             await self.visit_village(ctx, user, combat_stats)
             
             # Check for level up conditions
@@ -148,13 +153,17 @@ class StorySystem:
                 # users[str(user.user_id)]["level"] = user.level
                 # save_users(users)
     
-    async def run_battle(self, ctx, user: User, combat_stats: Dict) -> bool:
+    async def run_battle(self, ctx, user: User, combat_stats: Dict, story_info = None) -> bool:
         """Handle battle sequence, returns True if player survives"""
         battle = await self.battle_system.generate_battle()
         
         # API CALL: Send battle data (ie. setting, monsters, current user) to Mistral, and generate a story line to print out
-        await ctx.send(f"\n{battle['storyline']}")
-        await ctx.send(f"Location: {battle['setting']}")
+        if self.agent != None:
+            mistral_story = await self.agent.generate_story(story_info, battle)
+            await ctx.send(f"\n{mistral_story}")
+        else:
+            await ctx.send(f"\n{battle['storyline']}")
+            await ctx.send(f"Location: {battle['setting']}")
         
         enemy_list = ""
         for monster in battle['monsters']:
@@ -199,6 +208,10 @@ class StorySystem:
     
     async def visit_village(self, ctx, user: User, combat_stats: Dict) -> None:
         """Handle village sequence with user interaction"""
+        villageProb = 0.3
+        if random.random() < villageProb:
+            return
+
         await ctx.send("\nYou arrive at the village to rest and recover...")
         
         while True:  # Keep running until user chooses to leave
