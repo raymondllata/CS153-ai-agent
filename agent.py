@@ -6,6 +6,7 @@ import random
 import time
 import asyncio
 from typing import Dict
+import re
 
 MISTRAL_MODEL = "mistral-large-latest"
 SYSTEM_PROMPT = "You are a Dungeons and Dragons game teller. Be creative and have fun! Do not repeat stories. You should be amenable to user's prompts (the first line of every request). The story should try to adhere to the themes of the user stated theme, even if not necessairly a D&D theme. Be creative."
@@ -115,6 +116,65 @@ class MistralAgent:
         except Exception as e:
             print(f"Error generating monster: {e}")
             return None
+    
+    async def estimate_attack_damage(self, user_attack: str) -> int:
+        """Estimate the damage done (3-10) based on user attack input using the Mistral API"""
+        await self.rate_limit()  # Ensure rate limiting is applied
+
+        prompt = f"""Rate the effectiveness of the following attack on a scale from 3 to 10 based on its power, technique, and potential damage. Respond with only a JSON object in this format:
+        {{
+            "damage_score": number between 3-10
+        }}
+
+        Attack description: "{user_attack}" 
+        """
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are a combat AI that rates attack effectiveness from 3 to 10 based on power, technique, and impact."},
+                {"role": "user", "content": prompt}
+            ]
+
+            response = await self.client.chat.complete_async(
+                model="mistral-medium",
+                messages=messages,
+            )
+
+            # Extract response content
+            content = response.choices[0].message.content.strip()
+
+            # 🛠 FIX 1: Remove Markdown formatting like ```json ```
+            if content.startswith("```json"):
+                content = content[7:-3].strip()  # Remove ```json and trailing ```
+            elif content.startswith("```"):
+                content = content[3:-3].strip()  # Remove ``` and trailing ```
+
+            # 🛠 FIX 2: Remove invalid backslashes before parsing
+            content = re.sub(r"\\_", "_", content)  # Fix incorrect `\_` escape sequences
+
+            print(f"User attack input: {user_attack}")
+            print(f"Attack damage response (cleaned): {content}")  # Debugging print
+
+            # 🛠 FIX 3: Handle empty response
+            if not content:
+                print("Warning: Empty API response!")
+                return random.randint(3, 10)  # Fallback to a random score
+
+            # Parse JSON response
+            damage_data = json.loads(content)
+
+            # Ensure damage is within 3-10 range
+            score = max(3, min(10, damage_data.get("damage_score", 3)))  # Ensures minimum of 3
+            return score * random.uniform(1, 3)
+
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Raw content: {content}")  # Show actual response
+            return random.randint(3, 10)  # Fallback to a random score
+
+        except Exception as e:
+            print(f"Error estimating attack damage: {e}")
+            return -1  # Indicate an error occurred
     
     "Generates a story segment using Mistral's API; called on entry to a battle. This function passes prior story information to the API, and the current Battle Class State to the API"
     async def generate_story(self, story_info, battle_info: dict):

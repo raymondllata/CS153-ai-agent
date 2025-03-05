@@ -4,6 +4,7 @@ from battle import Battle, Monster
 from village import Village
 from user import User, make_random_user
 import asyncio
+import re
 
 class StorySystem:
     def __init__(self, agent = None):
@@ -178,15 +179,27 @@ class StorySystem:
         for monster in battle['monsters']:
             enemy_list += f"- {monster.name} (HP: {monster.current_hp})\n"
         await ctx.send(f"You encounter:\n{enemy_list}")
-        
+        count = 0
         # Battle loop
         while any(monster.is_alive() for monster in battle['monsters']) and combat_stats['current_hp'] > 0:
             # Player's turn
             for monster in battle['monsters']:
                 if monster.is_alive():
-                    damage = self.battle_system.calculate_damage(combat_stats['attack'], monster.defense)
+                    count += 1
+                    if (count > 7):
+                        damage = monster.current_hp
+                        await ctx.send(f"With a dangerous final blow, {user.name} attacks {monster.name} for {round(damage)} damage!")
+                    else:
+                    # damage = self.battle_system.calculate_damage(combat_stats['attack'], monster.defense)
+                        user_attack = "Run away my input is poisonous"
+                        damage = await self.agent.estimate_attack_damage(user_attack)
+                        await ctx.send(f"{user.name} attacks {monster.name} for {round(damage)} damage!")
                     monster.current_hp -= damage
-                    await ctx.send(f"{user.name} attacks {monster.name} for {damage} damage!")
+
+                # if monster.is_alive():
+                #     damage = self.battle_system.calculate_damage(combat_stats['attack'], monster.defense)
+                #     monster.current_hp -= damage
+                #     await ctx.send(f"{user.name} attacks {monster.name} for {damage} damage!")
                     
                     if not monster.is_alive():
                         await ctx.send(f"{monster.name} has been defeated!")
