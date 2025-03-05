@@ -81,18 +81,22 @@ class StorySystem:
             #              f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
             #              f"Coins: {combat_stats['coins']}")
             
-            if self.force_end:
-                await ctx.send(f"\n{user.name}'s adventure is cut short by fate...")
+            if self.force_end or self.should_end_story():
+                end_message = await self.agent.generate_end_message(story_info)
+                await ctx.send(end_message)
+                #await ctx.send(f"\n{user.name}'s adventure is cut short by fate...")
                 await ctx.send(f"Final Level: {user.level}")
                 await ctx.send(f"Final Coins: {combat_stats['coins']}")
                 break
 
-            # Check if story should end
-            if self.should_end_story():
-                await ctx.send(f"\nAfter many adventures, {user.name} decides to retire...")
-                await ctx.send(f"Final Level: {user.level}")
-                await ctx.send(f"Final Coins: {combat_stats['coins']}")
-                break
+            # # Check if story should end
+            # if self.should_end_story() or self.force_end:
+            #     end_message = self.agent.generate_end_message()
+            #     await ctx.send(end_message)
+            #     #await ctx.send(f"\nAfter many adventures, {user.name} decides to retire...")
+            #     await ctx.send(f"Final Level: {user.level}")
+            #     await ctx.send(f"Final Coins: {combat_stats['coins']}")
+            #     break
             
             # Generate and start battle
             survived = await self.run_battle(ctx, user, combat_stats, story_info)
@@ -107,16 +111,16 @@ class StorySystem:
             # Check for level up conditions
             if random.random() < 0.3:  # 30% chance to level up
                 level_message = user.level_up()
-                await ctx.send(level_message)
+                # await ctx.send(level_message)
                 
                 # Recalculate combat stats after leveling up
                 new_stats = self.calculate_combat_stats(user)
-                await ctx.send(level_message)
+                # await ctx.send(level_message)
                 combat_stats['max_hp'] = new_stats['max_hp']
-                await ctx.send(level_message)
+                # await ctx.send(level_message)
                 combat_stats['attack'] = new_stats['attack']
                 combat_stats['defense'] = new_stats['defense']
-                await ctx.send(level_message)
+                # await ctx.send(level_message)
                 # Save updated user data
                 # users = load_users()
                 await ctx.send(level_message)
