@@ -1,3 +1,12 @@
+## TODO
+Add API calls for Character Creation (this should also leverage the story theme info?)
+Add API calls for village items
+Make the combat like pokemon instead of just doing stuff automatically
+Add API call for concluding combat
+Add treasure stage?
+
+
+
 # CS 153 - Infrastructure at Scale AI Agent Starter Code
 
 Note that for Discord the terms Bot and App are interchangable. We will use App in this manual.
