@@ -1,9 +1,9 @@
 ## TODO
-Add API calls for Character Creation (this should also leverage the story theme info?)
-Add API calls for village items
-Make the combat like pokemon instead of just doing stuff automatically
-Add API call for concluding combat
-Add treasure stage?
+1.Add API calls for Character Creation (this should also leverage the story theme info?)
+2.Add API calls for village items
+3.Make the combat like pokemon instead of just doing stuff automatically
+4.Add API call for concluding combat
+5.Add treasure stage?
 
 
 
