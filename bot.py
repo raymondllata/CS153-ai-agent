@@ -147,7 +147,7 @@ async def end(ctx):
         await ctx.send("No game is currently running!")
     else:
         story.force_end = True  # Set the flag instead of probability
-        await ctx.send("Ending the current game...")
+        await ctx.send("Ending the current game at the next available spot...")
 
 @bot.command(name="village", help="Tests Village")
 async def village(ctx, *, arg=None):
