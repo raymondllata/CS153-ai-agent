@@ -64,7 +64,8 @@ class MistralAgent:
             return "I'm sorry, I encountered an error processing your request. Please try again."
 
     async def generate_monster_template(self, existing_templates, story_info) -> Dict:
-        """Generate a monster template using the Mistral API with rate limiting"""
+        """Generate a monster template using the Mistral API with rate limiting
+        This function passes prior information of existing monster templates and prior story information to the API"""
         # Apply rate limiting before making the API call
         await self.rate_limit()
         
@@ -115,7 +116,7 @@ class MistralAgent:
             print(f"Error generating monster: {e}")
             return None
     
-    "Generates a story segment using Mistral's API; called on entry to a battle"
+    "Generates a story segment using Mistral's API; called on entry to a battle. This function passes prior story information to the API, and the current Battle Class State to the API"
     async def generate_story(self, story_info, battle_info: dict):
         # Apply rate limiting before making the API call
         await self.rate_limit()
@@ -144,7 +145,8 @@ class MistralAgent:
     
     """
     Generates a theme header using Mistral's API; called on entry to a new story
-    This function is needed to emphasize the theme element of the story, otherwise the AI tends to ignore it"""
+    This function is needed to emphasize the theme element of the story, otherwise the AI tends to ignore it
+    Passes in the prior story information to the API"""
     async def generate_theme_header(self, story_info):
         # Apply rate limiting before making the API call
         await self.rate_limit()
@@ -173,6 +175,7 @@ class MistralAgent:
     
 
     # Generate a conclusion using Mistral's API
+    # pass in relevant story information
     async def generate_end_message(self, story_info):
         # Apply rate limiting before making the API call
         await self.rate_limit()
