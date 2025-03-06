@@ -2,7 +2,7 @@ from typing import Dict
 import random
 from battle import Battle, Monster
 from village import Village
-from user import User, make_random_user
+from user import User, make_random_user, parse_character_json
 import asyncio
 import re
 
@@ -63,7 +63,53 @@ class StorySystem:
     async def start_adventure(self, ctx, story_info=None) -> None:
         """Main story flow with repeating adventures"""
         # Get or create user
-        user = make_random_user()
+        # Ask the user what kind of adventurer they want to be
+        await ctx.send("Welcome to the adventure! What kind of character would you like to be? Describe your ideal adventurer (class, background, etc.) Press Enter to skip:")
+        
+        def check(message):
+            # Check if the message is from the user who initiated the command
+            return message.author == ctx.author
+        
+        try:
+            # Wait for player's response with a 120-second timeout
+            player_response = await ctx.bot.wait_for('message', check=check, timeout=120.0)
+            
+            # Append the user's preference to story_info for context
+            user_preference = player_response.content
+
+            if len(user_preference) < 2:
+                user = make_random_user()
+
+            else:
+            # story_info.append(f"Player wants to be: {user_preference}")
+            
+                await ctx.send("Creating your character... Please wait a moment.")
+                
+                # Generate character based on player's preference using Mistral API
+                character_json = await self.agent.generate_character(story_info, user_preference)
+                
+                # Parse the JSON into a User object
+                user = parse_character_json(character_json)
+                
+                # Calculate combat stats based on the created character
+                combat_stats = self.calculate_combat_stats(user)
+            
+        except asyncio.TimeoutError:
+            await ctx.send("You took too long to respond! Creating a random character for you.")
+            user = make_random_user()
+            combat_stats = self.calculate_combat_stats(user)
+        
+        # Initial message with character info
+        if hasattr(user, 'background'):
+            await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
+            await ctx.send(f"Background: {user.background}")
+        else:
+            await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
+        
+        await ctx.send(user.show_stats())
+        await ctx.send(f"Combat Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
+                    f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
+                    f"Coins: {combat_stats['coins']}")
         combat_stats = self.calculate_combat_stats(user)
 
         # Generate story details if needed
@@ -72,7 +118,7 @@ class StorySystem:
         
         # Initial message
         await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
-        await ctx.send(user.show_stats())
+        # await ctx.send(user.show_stats())
         
         # Reset probability at start of new adventure
         self.reset_end_probability()
@@ -176,34 +222,72 @@ class StorySystem:
             await ctx.send(f"\n{battle['storyline']}")
             await ctx.send(f"Location: {battle['setting']}")
         
-        enemy_list = ""
-        for monster in battle['monsters']:
-            enemy_list += f"- {monster.name} (HP: {monster.current_hp})\n"
-        await ctx.send(f"You encounter:\n{enemy_list}")
-        count = 0
         # Battle loop
+        count = 0
         while any(monster.is_alive() for monster in battle['monsters']) and combat_stats['current_hp'] > 0:
-            # Player's turn
-            for monster in battle['monsters']:
-                if monster.is_alive():
-                    count += 1
-                    if (count > 7):
-                        damage = monster.current_hp
-                        await ctx.send(f"With a dangerous final blow, {user.name} attacks {monster.name} for {round(damage)} damage!")
-                    else:
-                    # damage = self.battle_system.calculate_damage(combat_stats['attack'], monster.defense)
-                        user_attack = "Run away my input is poisonous"
-                        damage = await self.agent.estimate_attack_damage(user_attack)
-                        await ctx.send(f"{user.name} attacks {monster.name} for {round(damage)} damage!")
-                    monster.current_hp -= damage
+            # Display current monster status
+            count += 1
+            alive_monsters = [monster for monster in battle['monsters'] if monster.is_alive()]
+            
+            enemy_list = ""
+            for i, monster in enumerate(alive_monsters, 1):
+                enemy_list += f"{i}. {monster.name} (HP: {monster.current_hp})\n"
+            
+            await ctx.send(f"Current enemies:\n{enemy_list}")
+            await ctx.send(f"Your HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}")
+            
+            # Ask player which monster to attack
+            await ctx.send("Which monster do you want to attack? (Enter the number followed by a space and any attack details)")
+            
+            def check(message):
+                # Check if the message is from the user and starts with a number
+                return message.author == ctx.author and message.content.strip()[0].isdigit()
+            
+            try:
+                # Wait for player's response with a 60-second timeout
+                player_choice = await ctx.bot.wait_for('message', check=check, timeout=60.0)
+                
+                # Extract the monster number from the player's response
+                monster_number = int(player_choice.content.strip()[0]) - 1
+                
+                # Validate the choice
+                if monster_number < 0 or monster_number >= len(alive_monsters):
+                    await ctx.send(f"Invalid choice! Please pick a valid number.")
+                    await ctx.send("Format your answer as follows \"<Number> <Description>\" ie: \"1 Swing my Greatsword as hard as I can \"")
 
-                # if monster.is_alive():
-                #     damage = self.battle_system.calculate_damage(combat_stats['attack'], monster.defense)
-                #     monster.current_hp -= damage
-                #     await ctx.send(f"{user.name} attacks {monster.name} for {damage} damage!")
+                    continue # repeat
+                
+                # Player's turn
+                target_monster = alive_monsters[monster_number]
+                # damage = self.battle_system.calculate_damage(combat_stats['attack'], target_monster.defense)
+                damage = await self.agent.estimate_attack_damage(player_choice.content.strip()[1:]) 
+                if (count > 7):
+                     damage = target_monster.current_hp
+                     await ctx.send(f"With a dangerous final blow, {user.name} attacks {monster.name} for {round(damage)} damage!")
+                else: 
+                    await ctx.send(f"{user.name} attacks {target_monster.name} for {damage} damage!")
+                target_monster.current_hp -= damage
+                
+                if not target_monster.is_alive():
+                    await ctx.send(f"{target_monster.name} has been defeated!")
                     
-                    if not monster.is_alive():
-                        await ctx.send(f"{monster.name} has been defeated!")
+                    # Add random loot
+                    loot = random.choice(["Health Potion", "Strength Elixir", "Defense Charm"])
+                    loot_message = user.add_item(loot)
+                    await ctx.send(loot_message)
+                    
+                    combat_stats['coins'] += random.randint(20, 50)
+            
+            except asyncio.TimeoutError:
+                await ctx.send("You took too long to respond! Attacking the first monster by default.")
+                if alive_monsters:
+                    target_monster = alive_monsters[0]
+                    damage = self.battle_system.calculate_damage(combat_stats['attack'], target_monster.defense)
+                    target_monster.current_hp -= damage
+                    await ctx.send(f"{user.name} attacks {target_monster.name} for {damage} damage!")
+                    
+                    if not target_monster.is_alive():
+                        await ctx.send(f"{target_monster.name} has been defeated!")
                         
                         # Add random loot
                         loot = random.choice(["Health Potion", "Strength Elixir", "Defense Charm"])
