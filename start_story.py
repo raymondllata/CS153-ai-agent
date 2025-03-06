@@ -260,13 +260,13 @@ class StorySystem:
                 # Player's turn
                 target_monster = alive_monsters[monster_number]
                 # damage = self.battle_system.calculate_damage(combat_stats['attack'], target_monster.defense)
-                damage = await self.agent.estimate_attack_damage(player_choice.content.strip()[1:]) 
+                damage = await self.agent.estimate_attack_damage(combat_stats['attack'], target_monster.defense, player_choice.content.strip()[1:]) 
                 if (count > 7):
                      damage = target_monster.current_hp
                      await ctx.send(f"With a dangerous final blow, {user.name} attacks {monster.name} for {round(damage)} damage!")
                 else: 
-                    await ctx.send(f"{user.name} attacks {target_monster.name} for {damage} damage!")
-                target_monster.current_hp -= damage
+                    await ctx.send(f"{user.name} attacks {target_monster.name} for {round(damage)} damage!")
+                target_monster.current_hp -= round(damage)
                 
                 if not target_monster.is_alive():
                     await ctx.send(f"{target_monster.name} has been defeated!")

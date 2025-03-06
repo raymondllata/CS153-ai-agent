@@ -124,5 +124,5 @@ class Battle:
     def calculate_damage(self, attack: int, defense: int) -> int:
         """Calculate damage dealt based on attack and defense stats"""
         base_damage = max(1, attack - defense)
-        variance = random.uniform(1, 4)
+        variance = random.uniform(5, 12)
         return int(base_damage * variance)

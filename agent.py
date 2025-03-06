@@ -117,7 +117,7 @@ class MistralAgent:
             print(f"Error generating monster: {e}")
             return None
     
-    async def estimate_attack_damage(self, user_attack: str) -> int:
+    async def estimate_attack_damage(self, attack: int, defense: int, user_attack: str) -> int:
         """Estimate the damage done (3-10) based on user attack input using the Mistral API"""
         await self.rate_limit()  # Ensure rate limiting is applied
 
@@ -136,7 +136,7 @@ class MistralAgent:
             ]
 
             response = await self.client.chat.complete_async(
-                model="mistral-medium",
+                model=MISTRAL_MODEL,
                 messages=messages,
             )
 
@@ -164,8 +164,9 @@ class MistralAgent:
             damage_data = json.loads(content)
 
             # Ensure damage is within 3-10 range
-            score = max(3, min(10, damage_data.get("damage_score", 3)))  # Ensures minimum of 3
-            return score * random.uniform(1, 3)
+            # score = max(3, min(10, damage_data.get("damage_score", 3)))  # Ensures minimum of 3
+            score = int(attack - defense) * max(3, min(10, damage_data.get("damage_score", 3)))
+            return score / 4
 
         except json.JSONDecodeError as e:
             print(f"JSON parsing error: {e}")
