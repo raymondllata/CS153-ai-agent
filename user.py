@@ -131,3 +131,88 @@ def make_random_user():
 #     }
 #     # save_users(users)
 #     return new_user
+
+def parse_character_json(json_string):
+    """
+    Parses a JSON string containing character data and returns a User object.
+    
+    Args:
+        json_string (str): JSON string containing character data
+        
+    Returns:
+        User: A fully initialized User object based on the JSON data
+    """
+    try:
+        import json
+        import random
+        
+        # Debug prints
+        print("Received JSON string type:", type(json_string))
+        print("JSON string length:", len(str(json_string)) if json_string else 0)
+        
+        # Check if the string is empty or None
+        if not json_string:
+            print("Empty JSON string received, creating random user")
+            return make_random_user()
+            
+        # If the string looks like it already has the JSON parsed (might be a dict)
+        if isinstance(json_string, dict):
+            char_data = json_string
+            print("Input was already a dictionary")
+        else:
+            # Handle different formats - try to extract JSON if wrapped in other text
+            json_string = str(json_string).strip()
+            
+            # Look for JSON brackets if there might be extra text
+            start_idx = json_string.find('{')
+            end_idx = json_string.rfind('}')
+            
+            if start_idx >= 0 and end_idx > start_idx:
+                json_string = json_string[start_idx:end_idx+1]
+                print("Extracted JSON from string")
+            
+            print("Parsing JSON string:", json_string[:100] + "..." if len(json_string) > 100 else json_string)
+            
+            # Parse the JSON string
+            char_data = json.loads(json_string)
+        
+        # Generate a random user ID
+        user_id = random.randint(10000, 99999)
+        
+        # Create a new User object with basic info
+        user = User(
+            user_id=user_id,
+            name=char_data.get("name", "Unknown Adventurer"),
+            character_class=char_data.get("character_class", "Warrior"),
+            level=char_data.get("level", 1)
+        )
+        
+        # Add stats
+        if "stats" in char_data and isinstance(char_data["stats"], dict):
+            for stat, value in char_data["stats"].items():
+                if stat in user.stats:
+                    # Ensure stats are within valid range (8-20)
+                    user.stats[stat] = max(8, min(20, int(value)))
+        
+        # Add inventory items
+        if "inventory" in char_data and isinstance(char_data["inventory"], list):
+            for item in char_data["inventory"]:
+                user.add_item(item)
+        
+        # Add abilities
+        if "abilities" in char_data and isinstance(char_data["abilities"], list):
+            user.abilities = char_data["abilities"]
+        
+        # Add background as a property if it exists
+        if "background" in char_data:
+            user.background = char_data["background"]
+        
+        print(f"Successfully created character: {user.name}, {user.character_class}")
+        return user
+    except Exception as e:
+        import traceback
+        print(f"Error parsing character JSON: {e}")
+        print(f"JSON string (first 200 chars): {str(json_string)[:200]}")
+        print(traceback.format_exc())
+        # Return a default user if parsing fails
+        return make_random_user()
