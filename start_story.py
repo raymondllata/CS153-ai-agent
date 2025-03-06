@@ -4,6 +4,7 @@ from battle import Battle, Monster
 from village import Village
 from user import User, make_random_user, parse_character_json
 import asyncio
+import re
 
 class StorySystem:
     def __init__(self, agent = None):
@@ -121,13 +122,14 @@ class StorySystem:
         
         # Reset probability at start of new adventure
         self.reset_end_probability()
+        round = 0
         
         while True:  # Infinite loop for continuing adventures
             # await ctx.send(f"\nCurrent Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
             #              f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
             #              f"Coins: {combat_stats['coins']}")
-            
-            if self.force_end or self.should_end_story():
+            round += 1
+            if self.force_end or (self.should_end_story() and round > 3):
                 end_message = await self.agent.generate_end_message(story_info)
                 await ctx.send(end_message)
                 #await ctx.send(f"\n{user.name}'s adventure is cut short by fate...")
