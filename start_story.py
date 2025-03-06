@@ -2,7 +2,7 @@ from typing import Dict
 import random
 from battle import Battle, Monster
 from village import Village
-from user import User, make_random_user
+from user import User, make_random_user, parse_character_json
 import asyncio
 
 class StorySystem:
@@ -62,7 +62,53 @@ class StorySystem:
     async def start_adventure(self, ctx, story_info=None) -> None:
         """Main story flow with repeating adventures"""
         # Get or create user
-        user = make_random_user()
+        # Ask the user what kind of adventurer they want to be
+        await ctx.send("Welcome to the adventure! What kind of character would you like to be? Describe your ideal adventurer (class, background, etc.) Press Enter to skip:")
+        
+        def check(message):
+            # Check if the message is from the user who initiated the command
+            return message.author == ctx.author
+        
+        try:
+            # Wait for player's response with a 120-second timeout
+            player_response = await ctx.bot.wait_for('message', check=check, timeout=120.0)
+            
+            # Append the user's preference to story_info for context
+            user_preference = player_response.content
+
+            if len(user_preference) < 2:
+                user = make_random_user()
+
+            else:
+            # story_info.append(f"Player wants to be: {user_preference}")
+            
+                await ctx.send("Creating your character... Please wait a moment.")
+                
+                # Generate character based on player's preference using Mistral API
+                character_json = await self.agent.generate_character(story_info, user_preference)
+                
+                # Parse the JSON into a User object
+                user = parse_character_json(character_json)
+                
+                # Calculate combat stats based on the created character
+                combat_stats = self.calculate_combat_stats(user)
+            
+        except asyncio.TimeoutError:
+            await ctx.send("You took too long to respond! Creating a random character for you.")
+            user = make_random_user()
+            combat_stats = self.calculate_combat_stats(user)
+        
+        # Initial message with character info
+        if hasattr(user, 'background'):
+            await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
+            await ctx.send(f"Background: {user.background}")
+        else:
+            await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
+        
+        await ctx.send(user.show_stats())
+        await ctx.send(f"Combat Stats: HP: {combat_stats['current_hp']}/{combat_stats['max_hp']}, "
+                    f"Attack: {combat_stats['attack']}, Defense: {combat_stats['defense']}, "
+                    f"Coins: {combat_stats['coins']}")
         combat_stats = self.calculate_combat_stats(user)
 
         # Generate story details if needed
@@ -71,7 +117,7 @@ class StorySystem:
         
         # Initial message
         await ctx.send(f"Welcome {user.name}, Level {user.level} {user.character_class}!")
-        await ctx.send(user.show_stats())
+        # await ctx.send(user.show_stats())
         
         # Reset probability at start of new adventure
         self.reset_end_probability()
@@ -188,7 +234,6 @@ class StorySystem:
             
             # Ask player which monster to attack
             await ctx.send("Which monster do you want to attack? (Enter the number followed by a space and any attack details)")
-            await ctx.send("ie. 1 Use my greatsword")
             
             def check(message):
                 # Check if the message is from the user and starts with a number
@@ -204,6 +249,8 @@ class StorySystem:
                 # Validate the choice
                 if monster_number < 0 or monster_number >= len(alive_monsters):
                     await ctx.send(f"Invalid choice! Please pick a valid number.")
+                    await ctx.send("Format your answer as follows \"<Number> <Description>\" ie: \"1 Swing my Greatsword as hard as I can \"")
+
                     continue # repeat
                 
                 # Player's turn
