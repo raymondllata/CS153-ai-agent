@@ -201,3 +201,82 @@ class MistralAgent:
             fallback_end = "Your adventure concludes for now, but new challenges await on the horizon..."
             story_info.append(fallback_end)
             return fallback_end
+        
+
+    async def generate_character(self, story_info=None, character_request=None):
+        """
+        Generates a character using Mistral's API.
+        This function passes story information to the API and returns a character in JSON string format.
+        """
+        # Apply rate limiting before making the API call
+        await self.rate_limit()
+        
+        try:
+            # Create a prompt that asks for a character generation
+            content = """Generate a character for a fantasy RPG game.
+            
+            Previous Stories: """ + str(story_info if story_info else []) + """
+            
+            Create a unique character that would fit into this world. Include the following information in JSON format:
+            - name: Character's full name
+            - character_class: A Characters Class / Occupation
+            - level: A number between 1 and 5
+            - stats: An object with the following stats (values between 8 and 20):
+                - Strength
+                - Dexterity
+                - Constitution
+                - Intelligence
+                - Wisdom
+                - Charisma
+            - inventory: An array of 2-4 items from this list: Health Potion, Mana Potion, Iron Sword, Leather Armor, Magic Scroll, Shield, Healing Herbs, Magic Wand
+            - abilities: An array of 2 abilities appropriate for the character class
+            - background: A brief character backstory (1-2 sentences)
+            
+            Return ONLY valid JSON with no additional text or explanations. Here is an example output:
+
+            {
+                "name": "Elara Nightshade",
+                "character_class": "Mage",
+                "level": 3,
+                "stats": {
+                    "Strength": 9,
+                    "Dexterity": 12,
+                    "Constitution": 10,
+                    "Intelligence": 18,
+                    "Wisdom": 15,
+                    "Charisma": 14
+                },
+                "inventory": [
+                    "Mana Potion",
+                    "Magic Scroll",
+                    "Magic Wand",
+                    "Healing Herbs"
+                ],
+                "abilities": [
+                    "Fireball",
+                    "Frost Nova"
+                ],
+                "background": "Once a scholar at the Academy of Arcane Arts, Elara was exiled after discovering forbidden knowledge in the restricted archives. She now wanders the realm seeking to expand her magical prowess while searching for ancient artifacts."
+            }
+
+            Please adhere as closely to the following user reques as possible:
+            """
+            if character_request != None:
+                content += character_request
+
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": content}
+            ]
+
+            response = await self.client.chat.complete_async(
+                model=MISTRAL_MODEL,
+                messages=messages,
+            )
+            # Return the raw JSON string
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error generating character: {e}")
+            # Fallback with minimal valid JSON
+            fallback_character = """{"name": "Fallback Character", "character_class": "Warrior", "level": 1, "stats": {"Strength": 12, "Dexterity": 10, "Constitution": 11, "Intelligence": 9, "Wisdom": 8, "Charisma": 10}, "inventory": ["Health Potion", "Shield"], "abilities": ["Slash", "Shield Block"], "background": "A novice warrior seeking adventure."}"""
+            return fallback_character
