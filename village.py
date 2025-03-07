@@ -1,9 +1,28 @@
 from typing import Dict, List
 import random
 from user import User
+import os
+import asyncio
+import time
 
 class Village:
-    def __init__(self):
+    def __init__(self, agent=None):
+         # Load API configuration
+        self.api_key = os.getenv('MISTRAL_API_KEY')
+        if not self.api_key:
+            raise ValueError("MISTRAL_API_KEY not found in environment variables")
+            
+        self.api_url = "https://api.mistral.ai/v1/chat/completions"
+        self.agent = agent
+        
+        # Rate limiting parameters
+        self.last_request_time = 0
+        self.min_request_interval = 1.0  # Minimum 1 second between requests
+
+        self.shop_items = {}  # Will be populated by API call
+        self.special_items = {}  # Keep special items for now
+
+        '''
         # Base shop items - should be replaced with API calls
         self.shop_items = {
             "Health Potion": {"price": 50, "heal": 30, "description": "Restores 30 HP"},
@@ -28,7 +47,49 @@ class Village:
                 "Holy Symbol": {"price": 220, "heal": 50, "stat_boost": {"Wisdom": 2}, "min_stat": 14},
                 "Prophet's Staff": {"price": 280, "attack": 12, "stat_boost": {"Wisdom": 3}, "min_stat": 16}
             }
-        }
+        }'''
+    
+    async def refresh_shop_items(self, story_info=None):
+        """Refresh shop inventory using the Mistral API"""
+        self.shop_items = {}
+        try:
+            items_data = await self.agent.generate_village_items(
+                existing_items=self.shop_items,
+                story_info=story_info
+            )
+            # Convert API response format to our shop format
+            new_shop_items = {}
+            for item in items_data["items"]:
+                item_stats = {}
+                
+                # Set price
+                item_stats["price"] = item["price"]
+                item_stats["description"] = item["description"]
+                
+                # Add stats based on item type
+                if item["type"] == "Weapon":
+                    item_stats["attack"] = random.randint(5, 15)
+                elif item["type"] == "Armor":
+                    item_stats["defense"] = random.randint(3, 10)
+                elif item["type"] == "Potion":
+                    item_stats["heal"] = random.randint(20, 50)
+                elif item["type"] == "Magical":
+                    # Random stat boost
+                    stat = random.choice(["Strength", "Wisdom", "Intelligence", "Charisma"])
+                    item_stats["stat_boost"] = {stat: random.randint(1, 3)}
+                
+                new_shop_items[item["name"]] = item_stats
+            
+            self.shop_items = new_shop_items
+            return True
+        except Exception as e:
+            print(f"Error refreshing shop items: {e}")
+            # Fallback to some basic items if API fails
+            self.shop_items = {
+                "Health Potion": {"price": 50, "heal": 30, "description": "Restores 30 HP"},
+                "Iron Sword": {"price": 150, "attack": 10, "description": "Increases Attack by 10"}
+            }
+            return False
 
     def calculate_price_modifier(self, user: User) -> float:
         """Calculate price modifier based on Charisma"""

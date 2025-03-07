@@ -116,6 +116,71 @@ class MistralAgent:
         except Exception as e:
             print(f"Error generating monster: {e}")
             return None
+        
+    async def generate_village_items(self, existing_items=None, story_info=None) -> Dict:
+        """Generate a village shop inventory using the Mistral API with rate limiting
+        This function passes prior information of existing items and prior story information to the API"""
+        # Apply rate limiting before making the API call
+        await self.rate_limit()
+        
+        prompt = """Generate 3-4 unique items available in a fantasy village shop. Be imaginative. Return only a JSON string object with no other text in the following format:
+            {
+                "items": [
+                    {
+                        "name": "unique item name relevant to the story",
+                        "price": number between 1-100,
+                        "description": "brief description of the item",
+                        "type": one of ["Weapon", "Armor", "Potion", "Tool", "Magical"]
+                    }
+                ]
+            }.
+            
+            Only return a JSON string object. Should not contain any other text. Please only return a JSON string formatted object.
+            Do not repeat any items that have already been created. """
+        
+        prompt += "\n" + "Existing Items: " + str(existing_items) + "\n" + "Story Info: " + str(story_info) 
+        prompt += "\n" + "If possible, generate items that make sense for the given story_information and village context."
+        
+        try:
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ]
+
+            response = await self.client.chat.complete_async(
+                model=MISTRAL_MODEL,
+                messages=messages,
+            )
+            
+            # Access the content directly from the response object
+            content = response.choices[0].message.content
+            print(f"Village items response: {content[:100]}...")  # Print first 100 chars to avoid flooding console
+
+            # Parse the JSON string contained in the response content
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Raw content: {content}")
+            # Fallback to default items if parsing fails
+            return {
+                "items": [
+                    {
+                        "name": "Basic Health Potion",
+                        "price": random.randint(10, 25),
+                        "description": "A simple healing potion that restores some health",
+                        "type": "Potion"
+                    },
+                    {
+                        "name": "Iron Dagger",
+                        "price": random.randint(15, 30),
+                        "description": "A basic but reliable weapon",
+                        "type": "Weapon"
+                    }
+                ]
+            }
+        except Exception as e:
+            print(f"Error generating village items: {e}")
+            return None
     
     async def estimate_attack_damage(self, attack: int, defense: int, user_attack: str) -> int:
         """Estimate the damage done (3-10) based on user attack input using the Mistral API"""
